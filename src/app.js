@@ -1,6 +1,7 @@
 const express = require('express');
 const { crearInventario } = require('./services/inventario');
 const { productosRouter } = require('./routes/productos');
+const { alertasRouter } = require('./routes/alertas');
 
 function createApp({ inventario = crearInventario() } = {}) {
   const app = express();
@@ -11,6 +12,7 @@ function createApp({ inventario = crearInventario() } = {}) {
   });
 
   app.use('/productos', productosRouter(inventario));
+  app.use('/alertas', alertasRouter(inventario));
 
   app.use((req, res) => {
     res.status(404).json({ error: 'Ruta no encontrada' });

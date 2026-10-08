@@ -31,6 +31,8 @@ npm start   # http://localhost:3000
 | GET | `/productos/:id` | Detalle con lotes ordenados por vencimiento |
 | POST | `/productos/:id/lotes` | Registra lote (`numero`, `vencimiento` AAAA-MM-DD, `cantidad`, `costoUnitario`) |
 | POST | `/productos/:id/salidas` | Descuenta stock por FEFO (`cantidad`, `fecha` opcional) |
+| GET | `/alertas/vencimientos?dias=30` | Lotes vencidos o por vencer y valor en riesgo (Bs) |
+| GET | `/alertas/stock-bajo` | Productos con stock vigente en o bajo el mínimo |
 
 ### Ejemplo: salida FEFO
 
@@ -57,7 +59,7 @@ Los lotes vencidos nunca se usan en una salida.
 
 - [x] Estructura Express + Jest
 - [x] Productos con lotes y descuento FEFO
-- [ ] Alertas de vencimiento y stock mínimo
+- [x] Alertas de vencimiento y stock mínimo
 - [ ] Ventas con ticket
 - [ ] Proveedores y compras
 - [ ] Autenticación JWT con roles admin / cajero
