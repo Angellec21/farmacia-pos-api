@@ -26,13 +26,37 @@ npm start   # http://localhost:3000
 | Método | Ruta | Descripción |
 |--------|------|-------------|
 | GET | `/health` | Estado del servicio |
+| GET | `/productos` | Lista productos con su stock total |
+| POST | `/productos` | Crea producto (`nombre`, `codigo`, `precioVenta`, `stockMinimo`) |
+| GET | `/productos/:id` | Detalle con lotes ordenados por vencimiento |
+| POST | `/productos/:id/lotes` | Registra lote (`numero`, `vencimiento` AAAA-MM-DD, `cantidad`, `costoUnitario`) |
+| POST | `/productos/:id/salidas` | Descuenta stock por FEFO (`cantidad`, `fecha` opcional) |
+
+### Ejemplo: salida FEFO
+
+```bash
+curl -X POST localhost:3000/productos/1/salidas \
+  -H 'Content-Type: application/json' -d '{"cantidad": 40}'
+```
+
+```json
+{
+  "usados": [
+    { "lote": "L-A", "vencimiento": "2026-12-31", "cantidad": 30, "costoUnitario": 0.7 },
+    { "lote": "L-B", "vencimiento": "2027-06-30", "cantidad": 10, "costoUnitario": 0.8 }
+  ],
+  "costoTotal": 29
+}
+```
+
+Los lotes vencidos nunca se usan en una salida.
 
 *(La tabla crece con cada avance del proyecto.)*
 
 ## Roadmap
 
 - [x] Estructura Express + Jest
-- [ ] Productos con lotes y descuento FEFO
+- [x] Productos con lotes y descuento FEFO
 - [ ] Alertas de vencimiento y stock mínimo
 - [ ] Ventas con ticket
 - [ ] Proveedores y compras

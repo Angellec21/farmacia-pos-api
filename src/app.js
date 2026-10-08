@@ -1,12 +1,16 @@
 const express = require('express');
+const { crearInventario } = require('./services/inventario');
+const { productosRouter } = require('./routes/productos');
 
-function createApp() {
+function createApp({ inventario = crearInventario() } = {}) {
   const app = express();
   app.use(express.json());
 
   app.get('/health', (req, res) => {
     res.json({ status: 'ok', servicio: 'farmacia-pos-api' });
   });
+
+  app.use('/productos', productosRouter(inventario));
 
   app.use((req, res) => {
     res.status(404).json({ error: 'Ruta no encontrada' });
