@@ -1,6 +1,7 @@
 const express = require('express');
+const { ticketTexto, cierreDiario } = require('../services/reportes');
 
-function ventasRouter(ventas) {
+function ventasRouter(ventas, negocio = {}) {
   const router = express.Router();
 
   router.post('/', (req, res) => {
@@ -9,6 +10,15 @@ function ventasRouter(ventas) {
 
   router.get('/', (req, res) => {
     res.json(ventas.listar({ fecha: req.query.fecha }));
+  });
+
+  router.get('/cierre', (req, res) => {
+    const fecha = req.query.fecha || new Date().toISOString().slice(0, 10);
+    res.json(cierreDiario(ventas.listar(), fecha));
+  });
+
+  router.get('/:numero/ticket', (req, res) => {
+    res.type('text/plain; charset=utf-8').send(ticketTexto(ventas.obtener(req.params.numero), negocio));
   });
 
   router.get('/:numero', (req, res) => {
