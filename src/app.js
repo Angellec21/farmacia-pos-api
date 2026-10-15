@@ -2,8 +2,10 @@ const express = require('express');
 const { crearInventario } = require('./services/inventario');
 const { productosRouter } = require('./routes/productos');
 const { alertasRouter } = require('./routes/alertas');
+const { crearVentas } = require('./services/ventas');
+const { ventasRouter } = require('./routes/ventas');
 
-function createApp({ inventario = crearInventario() } = {}) {
+function createApp({ inventario = crearInventario(), ventas = crearVentas(inventario) } = {}) {
   const app = express();
   app.use(express.json());
 
@@ -13,6 +15,7 @@ function createApp({ inventario = crearInventario() } = {}) {
 
   app.use('/productos', productosRouter(inventario));
   app.use('/alertas', alertasRouter(inventario));
+  app.use('/ventas', ventasRouter(ventas));
 
   app.use((req, res) => {
     res.status(404).json({ error: 'Ruta no encontrada' });

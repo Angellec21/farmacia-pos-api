@@ -100,7 +100,20 @@ function crearInventario() {
     return { producto: resumen(p), usados, costoTotal };
   }
 
-  return { crearProducto, listar, obtener: (id) => resumen(obtener(id)), agregarLote, descontar };
+  /** Unidades en lotes no vencidos a la fecha `hoy` (no modifica nada). */
+  function stockVigente(productoId, hoy) {
+    const p = obtener(productoId);
+    return p.lotes.filter((l) => l.vencimiento >= hoy).reduce((s, l) => s + l.cantidad, 0);
+  }
+
+  return {
+    crearProducto,
+    listar,
+    obtener: (id) => resumen(obtener(id)),
+    agregarLote,
+    descontar,
+    stockVigente,
+  };
 }
 
 module.exports = { crearInventario, redondear };
