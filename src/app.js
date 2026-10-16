@@ -4,6 +4,10 @@ const { productosRouter } = require('./routes/productos');
 const { alertasRouter } = require('./routes/alertas');
 const { crearVentas } = require('./services/ventas');
 const { ventasRouter } = require('./routes/ventas');
+const { crearProveedores } = require('./services/proveedores');
+const { crearCompras } = require('./services/compras');
+const { proveedoresRouter } = require('./routes/proveedores');
+const { comprasRouter } = require('./routes/compras');
 
 const NEGOCIO_POR_DEFECTO = {
   nombre: process.env.FARMACIA_NOMBRE || 'FARMACIA SAN MARTIN',
@@ -14,6 +18,8 @@ const NEGOCIO_POR_DEFECTO = {
 function createApp({
   inventario = crearInventario(),
   ventas = crearVentas(inventario),
+  proveedores = crearProveedores(),
+  compras = crearCompras(inventario, proveedores),
   negocio = NEGOCIO_POR_DEFECTO,
 } = {}) {
   const app = express();
@@ -26,6 +32,8 @@ function createApp({
   app.use('/productos', productosRouter(inventario));
   app.use('/alertas', alertasRouter(inventario));
   app.use('/ventas', ventasRouter(ventas, negocio));
+  app.use('/proveedores', proveedoresRouter(proveedores, compras));
+  app.use('/compras', comprasRouter(compras));
 
   app.use((req, res) => {
     res.status(404).json({ error: 'Ruta no encontrada' });

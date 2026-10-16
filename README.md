@@ -12,6 +12,7 @@ En una farmacia el mismo producto llega en varios lotes con fechas de vencimient
 - Descuenta stock siempre del lote que vence primero (FEFO).
 - Avisa qué lotes están por vencer y cuánto dinero (en Bs) está en riesgo.
 - Avisa qué productos están por debajo del stock mínimo.
+- Registra las compras a droguerías y controla cuánto se les debe y qué facturas ya vencieron.
 
 ## Uso
 
@@ -38,6 +39,13 @@ npm start   # http://localhost:3000
 | GET | `/ventas/:numero` | Detalle con lotes usados por ítem |
 | GET | `/ventas/:numero/ticket` | Ticket en texto para impresora térmica de 58 mm |
 | GET | `/ventas/cierre?fecha=AAAA-MM-DD` | Cierre de caja: total, margen en Bs y %, ticket promedio, totales por método de pago |
+| GET / POST | `/proveedores` | Lista / crea proveedor (`nombre`, `nit`, `telefono`, `diasCredito`) |
+| GET | `/proveedores/:id/compras` | Historial de compras a un proveedor |
+| POST | `/compras` | Registra compra e ingresa sus lotes (`proveedorId`, `numeroFactura`, `fecha`, `condicion` contado/credito, `items[]`) |
+| GET | `/compras?proveedorId=&desde=&hasta=` | Lista compras con filtros |
+| GET | `/compras/:numero` | Detalle de la compra con lotes y pagos |
+| POST | `/compras/:numero/pagos` | Abono a una compra a crédito (`monto`, `fecha`) |
+| GET | `/compras/cuentas-por-pagar?fecha=` | Saldos pendientes, facturas vencidas y total por proveedor (Bs) |
 
 ### Ejemplo: salida FEFO
 
@@ -80,6 +88,29 @@ Cambio                   Bs 5.00
 
 Los datos del negocio del ticket se configuran con las variables `FARMACIA_NOMBRE`, `FARMACIA_DIRECCION` y `FARMACIA_NIT`.
 
+### Ejemplo: compra a crédito a una droguería
+
+Una compra también es **todo o nada**: si un lote viene vencido, repetido o con un producto inexistente, no se ingresa ninguno.
+
+```bash
+curl -X POST localhost:3000/proveedores -H 'Content-Type: application/json' \
+  -d '{"nombre":"Droguería INTI - Santa Cruz","nit":"1020304025","diasCredito":30}'
+curl -X POST localhost:3000/compras -H 'Content-Type: application/json' -d '{
+  "proveedorId": 1, "numeroFactura": "F-881", "fecha": "2026-10-16", "condicion": "credito",
+  "items": [{"productoId":1,"lote":"P-2401","vencimiento":"2027-08-31","cantidad":200,"costoUnitario":0.45}]
+}'
+curl localhost:3000/compras/cuentas-por-pagar
+```
+
+```json
+{
+  "totalPorPagar": 90,
+  "totalVencido": 0,
+  "porProveedor": { "Droguería INTI - Santa Cruz": 90 },
+  "facturas": [{ "numeroFactura": "F-881", "vencePago": "2026-11-15", "saldo": 90, "estado": "al dia" }]
+}
+```
+
 ## Arquitectura
 
 ```
@@ -91,6 +122,8 @@ src/
     alertas.js      # vencimientos y stock mínimo
     ventas.js       # ventas todo-o-nada con trazabilidad de lotes
     reportes.js     # ticket térmico y cierre diario
+    proveedores.js  # droguerías y laboratorios, días de crédito
+    compras.js      # ingreso de lotes por compra y cuentas por pagar
 tests/              # Jest + Supertest (servicios y API)
 ```
 
@@ -104,7 +137,7 @@ Los datos se guardan en memoria; la persistencia (SQLite) está en el roadmap.
 - [x] Productos con lotes y descuento FEFO
 - [x] Alertas de vencimiento y stock mínimo
 - [x] Ventas con ticket y cierre diario
-- [ ] Proveedores y compras
+- [x] Proveedores, compras y cuentas por pagar
 - [ ] Autenticación JWT con roles admin / cajero
 - [ ] Reportes para el dueño (más vendidos, margen por producto)
 - [ ] Persistencia en SQLite y datos de ejemplo de Santa Cruz
