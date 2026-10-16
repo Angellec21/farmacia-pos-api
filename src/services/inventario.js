@@ -45,7 +45,11 @@ function crearInventario() {
     return [...productos.values()].map(resumen);
   }
 
-  function agregarLote(productoId, { numero, vencimiento, cantidad, costoUnitario }) {
+  /**
+   * Valida los datos de un lote sin modificar nada. Permite a otros
+   * servicios (p. ej. compras) validar todos los ítems antes de aplicar.
+   */
+  function validarLote(productoId, { numero, vencimiento, cantidad, costoUnitario } = {}) {
     const p = obtener(productoId);
     if (!numero) throw new HttpError(400, 'numero de lote es obligatorio');
     if (!FECHA_RE.test(vencimiento || '') || Number.isNaN(Date.parse(vencimiento))) {
@@ -60,6 +64,12 @@ function crearInventario() {
     if (p.lotes.some((l) => l.numero === numero)) {
       throw new HttpError(409, 'Ese número de lote ya está registrado');
     }
+    return p;
+  }
+
+  function agregarLote(productoId, datos = {}) {
+    const p = validarLote(productoId, datos);
+    const { numero, vencimiento, cantidad, costoUnitario } = datos;
     const lote = { numero, vencimiento, cantidad, costoUnitario };
     p.lotes.push(lote);
     // Orden FEFO: el que vence primero, primero
@@ -110,6 +120,7 @@ function crearInventario() {
     crearProducto,
     listar,
     obtener: (id) => resumen(obtener(id)),
+    validarLote,
     agregarLote,
     descontar,
     stockVigente,
