@@ -29,9 +29,13 @@ function crearVentas(inventario) {
 
   /**
    * Registra una venta "todo o nada": si un solo producto no tiene stock
-   * vigente suficiente, no se descuenta nada.
+   * vigente suficiente, no se descuenta nada. `cajero` es el usuario de la sesión
+   * (nunca se toma del cuerpo de la petición).
    */
-  function registrar({ items, metodoPago = 'efectivo', cliente = null, nit = null, fecha = hoyISO(), montoRecibido }) {
+  function registrar(
+    { items, metodoPago = 'efectivo', cliente = null, nit = null, fecha = hoyISO(), montoRecibido },
+    cajero = null,
+  ) {
     validarItems(items);
     if (!METODOS_PAGO.includes(metodoPago)) {
       throw new HttpError(400, `metodoPago debe ser uno de: ${METODOS_PAGO.join(', ')}`);
@@ -87,6 +91,7 @@ function crearVentas(inventario) {
       cliente: cliente || 'Sin nombre',
       nit: nit || '0',
       metodoPago,
+      cajero: cajero ? { id: cajero.id, nombre: cajero.nombre } : null,
       items: detalle,
       total,
       costo,
@@ -98,8 +103,10 @@ function crearVentas(inventario) {
     return venta;
   }
 
-  function listar({ fecha } = {}) {
-    return fecha ? ventas.filter((v) => v.fecha === fecha) : [...ventas];
+  function listar({ fecha, cajeroId } = {}) {
+    return ventas.filter(
+      (v) => (!fecha || v.fecha === fecha) && (cajeroId === undefined || (v.cajero && v.cajero.id === cajeroId)),
+    );
   }
 
   function obtener(numero) {

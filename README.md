@@ -13,20 +13,51 @@ En una farmacia el mismo producto llega en varios lotes con fechas de vencimient
 - Avisa qué lotes están por vencer y cuánto dinero (en Bs) está en riesgo.
 - Avisa qué productos están por debajo del stock mínimo.
 - Registra las compras a droguerías y controla cuánto se les debe y qué facturas ya vencieron.
+- Separa lo que puede hacer el **dueño/administrador** de lo que puede hacer el **cajero**: cada venta queda a nombre de quien la cobró y el cajero no ve costos ni márgenes.
 
 ## Uso
 
 ```bash
 npm install
 npm test
-npm start   # http://localhost:3000
+cp .env.example .env   # opcional: cambie JWT_SECRET y ADMIN_PASSWORD
+npm start              # http://localhost:3000
 ```
+
+Al iniciar se crea el administrador (`ADMIN_USUARIO` / `ADMIN_PASSWORD`). Si no define `ADMIN_PASSWORD`, se genera una contraseña temporal y se muestra en la consola.
+
+## Autenticación y roles
+
+Todas las rutas, salvo `/health` y `/auth/login`, requieren un token JWT:
+
+```bash
+TOKEN=$(curl -s -X POST localhost:3000/auth/login -H 'Content-Type: application/json' \
+  -d '{"usuario":"admin","password":"cambie-esta-clave"}' | jq -r .token)
+curl localhost:3000/productos -H "Authorization: Bearer $TOKEN"
+```
+
+| Acción | admin | cajero |
+|--------|:-----:|:------:|
+| Consultar productos y alertas | ✅ | ✅ |
+| Registrar ventas, ver e imprimir **sus** tickets | ✅ | ✅ |
+| Cierre de caja | todo el local, con margen | solo su caja, sin costos |
+| Crear productos, ingresar lotes, salidas manuales | ✅ | ❌ |
+| Proveedores, compras y cuentas por pagar | ✅ | ❌ |
+| Crear y desactivar usuarios | ✅ | ❌ |
+
+- Las contraseñas se guardan con **scrypt** y sal aleatoria, nunca en texto plano.
+- El token dura `JWT_EXPIRA_EN` (8 h, un turno). Si el admin desactiva a un cajero, pierde el acceso al instante aunque su token siga vigente.
+- El cajero de una venta se toma de la sesión, no del cuerpo de la petición.
 
 ## Endpoints
 
 | Método | Ruta | Descripción |
 |--------|------|-------------|
-| GET | `/health` | Estado del servicio |
+| GET | `/health` | Estado del servicio (público) |
+| POST | `/auth/login` | Inicia sesión (`usuario`, `password`) y devuelve el token |
+| GET | `/auth/yo` | Usuario de la sesión actual |
+| GET / POST | `/usuarios` | Lista / crea usuario (`usuario`, `nombre`, `password`, `rol` admin/cajero) — admin |
+| PATCH | `/usuarios/:id` | Activa o desactiva (`activo`) — admin |
 | GET | `/productos` | Lista productos con su stock total |
 | POST | `/productos` | Crea producto (`nombre`, `codigo`, `precioVenta`, `stockMinimo`) |
 | GET | `/productos/:id` | Detalle con lotes ordenados por vencimiento |
@@ -35,10 +66,10 @@ npm start   # http://localhost:3000
 | GET | `/alertas/vencimientos?dias=30` | Lotes vencidos o por vencer y valor en riesgo (Bs) |
 | GET | `/alertas/stock-bajo` | Productos con stock vigente en o bajo el mínimo |
 | POST | `/ventas` | Registra venta (`items[]`, `metodoPago` efectivo/qr/tarjeta, `cliente`, `nit`, `montoRecibido`) |
-| GET | `/ventas?fecha=AAAA-MM-DD` | Lista ventas (opcionalmente de un día) |
+| GET | `/ventas?fecha=AAAA-MM-DD&cajeroId=` | Lista ventas (el cajero ve solo las suyas) |
 | GET | `/ventas/:numero` | Detalle con lotes usados por ítem |
 | GET | `/ventas/:numero/ticket` | Ticket en texto para impresora térmica de 58 mm |
-| GET | `/ventas/cierre?fecha=AAAA-MM-DD` | Cierre de caja: total, margen en Bs y %, ticket promedio, totales por método de pago |
+| GET | `/ventas/cierre?fecha=AAAA-MM-DD&cajeroId=` | Cierre de caja: total, margen en Bs y %, ticket promedio, totales por método de pago |
 | GET / POST | `/proveedores` | Lista / crea proveedor (`nombre`, `nit`, `telefono`, `diasCredito`) |
 | GET | `/proveedores/:id/compras` | Historial de compras a un proveedor |
 | POST | `/compras` | Registra compra e ingresa sus lotes (`proveedorId`, `numeroFactura`, `fecha`, `condicion` contado/credito, `items[]`) |
@@ -46,6 +77,8 @@ npm start   # http://localhost:3000
 | GET | `/compras/:numero` | Detalle de la compra con lotes y pagos |
 | POST | `/compras/:numero/pagos` | Abono a una compra a crédito (`monto`, `fecha`) |
 | GET | `/compras/cuentas-por-pagar?fecha=` | Saldos pendientes, facturas vencidas y total por proveedor (Bs) |
+
+> En los ejemplos siguientes se omite `-H "Authorization: Bearer $TOKEN"` por brevedad.
 
 ### Ejemplo: salida FEFO
 
@@ -116,15 +149,18 @@ curl localhost:3000/compras/cuentas-por-pagar
 ```
 src/
   app.js            # arma la app Express (inyección de servicios para tests)
-  routes/           # capa HTTP: valida query/params y delega
+  auth.js           # login JWT, middleware de sesión y permisos por rol
+  routes/           # capa HTTP: valida query/params, aplica permisos y delega
   services/
+    usuarios.js     # usuarios, roles y contraseñas con scrypt
     inventario.js   # productos, lotes y descuento FEFO
     alertas.js      # vencimientos y stock mínimo
     ventas.js       # ventas todo-o-nada con trazabilidad de lotes
     reportes.js     # ticket térmico y cierre diario
     proveedores.js  # droguerías y laboratorios, días de crédito
     compras.js      # ingreso de lotes por compra y cuentas por pagar
-tests/              # Jest + Supertest (servicios y API)
+tests/              # Jest + Supertest (servicios, API y permisos)
+  helpers/sesion.js # app de prueba con admin y cajero ya logueados
 ```
 
 Los datos se guardan en memoria; la persistencia (SQLite) está en el roadmap.
@@ -138,7 +174,7 @@ Los datos se guardan en memoria; la persistencia (SQLite) está en el roadmap.
 - [x] Alertas de vencimiento y stock mínimo
 - [x] Ventas con ticket y cierre diario
 - [x] Proveedores, compras y cuentas por pagar
-- [ ] Autenticación JWT con roles admin / cajero
+- [x] Autenticación JWT con roles admin / cajero
 - [ ] Reportes para el dueño (más vendidos, margen por producto)
 - [ ] Persistencia en SQLite y datos de ejemplo de Santa Cruz
 

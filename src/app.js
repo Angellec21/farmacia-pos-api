@@ -44,12 +44,14 @@ function createApp({
 
   // Todo lo que sigue requiere sesión iniciada
   app.use(auth.requerirSesion);
-  app.use('/usuarios', auth.permitir('admin'), usuariosRouter(usuarios));
-  app.use('/productos', productosRouter(inventario));
+  // Permisos: admin = todo; cajero = vender, consultar productos/alertas y su propia caja
+  const soloAdmin = auth.permitir('admin');
+  app.use('/usuarios', soloAdmin, usuariosRouter(usuarios));
+  app.use('/productos', productosRouter(inventario, soloAdmin));
   app.use('/alertas', alertasRouter(inventario));
   app.use('/ventas', ventasRouter(ventas, negocio));
-  app.use('/proveedores', proveedoresRouter(proveedores, compras));
-  app.use('/compras', comprasRouter(compras));
+  app.use('/proveedores', soloAdmin, proveedoresRouter(proveedores, compras));
+  app.use('/compras', soloAdmin, comprasRouter(compras));
 
   app.use((req, res) => {
     res.status(404).json({ error: 'Ruta no encontrada' });

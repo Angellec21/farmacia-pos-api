@@ -23,6 +23,7 @@ function ticketTexto(venta, negocio = {}) {
   const out = [centrar(nombre), centrar(direccion)];
   if (nit) out.push(centrar(`NIT ${nit}`));
   out.push(sep, `Venta Nro: ${venta.numero}`, `Fecha: ${venta.fecha}`);
+  if (venta.cajero) out.push(`Cajero: ${venta.cajero.nombre}`.slice(0, ANCHO));
   out.push(`Cliente: ${venta.cliente}`.slice(0, ANCHO), `NIT/CI: ${venta.nit}`, sep);
   for (const it of venta.items) {
     out.push(it.producto.slice(0, ANCHO));
