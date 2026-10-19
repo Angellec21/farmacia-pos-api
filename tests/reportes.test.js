@@ -1,5 +1,4 @@
-const request = require('supertest');
-const { createApp } = require('../src/app');
+const { crearAppDePrueba } = require('./helpers/sesion');
 const { ticketTexto, cierreDiario, ANCHO } = require('../src/services/reportes');
 
 const venta = {
@@ -57,19 +56,19 @@ describe('cierre diario', () => {
 
 describe('API de ticket y cierre', () => {
   test('GET /ventas/:n/ticket y /ventas/cierre', async () => {
-    const app = createApp();
-    await request(app).post('/productos').send({ nombre: 'Loratadina 10mg', codigo: 'LOR10', precioVenta: 2 });
-    await request(app).post('/productos/1/lotes')
+    const { admin: api } = await crearAppDePrueba();
+    await api.post('/productos').send({ nombre: 'Loratadina 10mg', codigo: 'LOR10', precioVenta: 2 });
+    await api.post('/productos/1/lotes')
       .send({ numero: 'L-1', vencimiento: '2027-09-30', cantidad: 20, costoUnitario: 0.8 });
-    await request(app).post('/ventas')
+    await api.post('/ventas')
       .send({ items: [{ productoId: 1, cantidad: 5 }], montoRecibido: 20, fecha: '2026-10-15' });
 
-    const ticket = await request(app).get('/ventas/1/ticket');
+    const ticket = await api.get('/ventas/1/ticket');
     expect(ticket.status).toBe(200);
     expect(ticket.headers['content-type']).toMatch(/text\/plain/);
     expect(ticket.text).toMatch(/Cambio\s+Bs 10\.00/);
 
-    const cierre = await request(app).get('/ventas/cierre?fecha=2026-10-15');
+    const cierre = await api.get('/ventas/cierre?fecha=2026-10-15');
     expect(cierre.body).toMatchObject({ totalBs: 10, costoBs: 4, margenBs: 6, cantidadVentas: 1 });
   });
 });

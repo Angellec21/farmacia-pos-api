@@ -1,5 +1,4 @@
-const request = require('supertest');
-const { createApp } = require('../src/app');
+const { crearAppDePrueba } = require('./helpers/sesion');
 const { crearInventario } = require('../src/services/inventario');
 const { lotesPorVencer, stockBajo, diasEntre } = require('../src/services/alertas');
 
@@ -38,21 +37,21 @@ describe('alertas', () => {
   });
 
   test('GET /alertas/vencimientos y /alertas/stock-bajo', async () => {
-    const app = createApp({ inventario: escenario() });
-    const v = await request(app).get('/alertas/vencimientos?dias=15&hoy=2026-10-08');
+    const { admin: api } = await crearAppDePrueba({ inventario: escenario() });
+    const v = await api.get('/alertas/vencimientos?dias=15&hoy=2026-10-08');
     expect(v.status).toBe(200);
     expect(v.body.total).toBe(2);
-    const s = await request(app).get('/alertas/stock-bajo?hoy=2026-10-08');
+    const s = await api.get('/alertas/stock-bajo?hoy=2026-10-08');
     expect(s.body[0].codigo).toBe('OME20');
   });
 
   test('dias inválido responde 400', async () => {
-    const res = await request(createApp()).get('/alertas/vencimientos?dias=-3');
+    const res = await (await crearAppDePrueba()).admin.get('/alertas/vencimientos?dias=-3');
     expect(res.status).toBe(400);
   });
 
   test('sin productos no hay alertas', async () => {
-    const res = await request(createApp()).get('/alertas/vencimientos');
+    const res = await (await crearAppDePrueba()).admin.get('/alertas/vencimientos');
     expect(res.body.total).toBe(0);
     expect(res.body.valorTotalEnRiesgoBs).toBe(0);
   });

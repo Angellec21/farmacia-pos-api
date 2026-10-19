@@ -1,4 +1,9 @@
+const crypto = require('crypto');
 const express = require('express');
+const { crearAuth } = require('./auth');
+const { crearUsuarios } = require('./services/usuarios');
+const { authRouter } = require('./routes/auth');
+const { usuariosRouter } = require('./routes/usuarios');
 const { crearInventario } = require('./services/inventario');
 const { productosRouter } = require('./routes/productos');
 const { alertasRouter } = require('./routes/alertas');
@@ -21,14 +26,25 @@ function createApp({
   proveedores = crearProveedores(),
   compras = crearCompras(inventario, proveedores),
   negocio = NEGOCIO_POR_DEFECTO,
+  usuarios = crearUsuarios(),
+  // Sin JWT_SECRET se usa un secreto aleatorio: los tokens no sobreviven a un reinicio.
+  jwtSecret = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex'),
+  jwtExpiraEn = process.env.JWT_EXPIRA_EN || '8h',
 } = {}) {
+  const auth = crearAuth({ usuarios, secreto: jwtSecret, expiraEn: jwtExpiraEn });
   const app = express();
+  app.disable('x-powered-by');
   app.use(express.json());
 
   app.get('/health', (req, res) => {
     res.json({ status: 'ok', servicio: 'farmacia-pos-api' });
   });
 
+  app.use('/auth', authRouter(auth));
+
+  // Todo lo que sigue requiere sesión iniciada
+  app.use(auth.requerirSesion);
+  app.use('/usuarios', auth.permitir('admin'), usuariosRouter(usuarios));
   app.use('/productos', productosRouter(inventario));
   app.use('/alertas', alertasRouter(inventario));
   app.use('/ventas', ventasRouter(ventas, negocio));
