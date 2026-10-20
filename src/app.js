@@ -13,6 +13,7 @@ const { crearProveedores } = require('./services/proveedores');
 const { crearCompras } = require('./services/compras');
 const { proveedoresRouter } = require('./routes/proveedores');
 const { comprasRouter } = require('./routes/compras');
+const { reportesRouter } = require('./routes/reportes');
 
 const NEGOCIO_POR_DEFECTO = {
   nombre: process.env.FARMACIA_NOMBRE || 'FARMACIA SAN MARTIN',
@@ -52,6 +53,7 @@ function createApp({
   app.use('/ventas', ventasRouter(ventas, negocio));
   app.use('/proveedores', soloAdmin, proveedoresRouter(proveedores, compras));
   app.use('/compras', soloAdmin, comprasRouter(compras));
+  app.use('/reportes', soloAdmin, reportesRouter(ventas));
 
   app.use((req, res) => {
     res.status(404).json({ error: 'Ruta no encontrada' });

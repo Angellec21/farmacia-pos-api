@@ -25,7 +25,7 @@ En una farmacia el mismo producto llega en varios lotes con fechas de vencimient
 
 ```bash
 npm install
-npm test               # 65 pruebas; `npm test -- --coverage` para ver la cobertura
+npm test               # 77 pruebas; `npm test -- --coverage` para ver la cobertura
 cp .env.example .env   # opcional: cambie JWT_SECRET y ADMIN_PASSWORD
 npm start              # http://localhost:3000
 ```
@@ -49,6 +49,7 @@ curl localhost:3000/productos -H "Authorization: Bearer $TOKEN"
 | Cierre de caja | todo el local, con margen | solo su caja, sin costos |
 | Crear productos, ingresar lotes, salidas manuales | ✅ | ❌ |
 | Proveedores, compras y cuentas por pagar | ✅ | ❌ |
+| Reportes del dueño (más vendidos, márgenes, cajeros) | ✅ | ❌ |
 | Crear y desactivar usuarios | ✅ | ❌ |
 
 - Las contraseñas se guardan con **scrypt** y sal aleatoria, nunca en texto plano.
@@ -83,6 +84,9 @@ curl localhost:3000/productos -H "Authorization: Bearer $TOKEN"
 | GET | `/compras/:numero` | Detalle de la compra con lotes y pagos |
 | POST | `/compras/:numero/pagos` | Abono a una compra a crédito (`monto`, `fecha`) |
 | GET | `/compras/cuentas-por-pagar?fecha=` | Saldos pendientes, facturas vencidas y total por proveedor (Bs) |
+| GET | `/reportes/mas-vendidos?desde=&hasta=&orden=unidades\|ingresos&limite=10` | Ranking de productos con participación en ventas (%) — admin |
+| GET | `/reportes/margen-productos?desde=&hasta=` | Margen bruto por producto con el costo real de los lotes, del menor al mayor — admin |
+| GET | `/reportes/ventas-cajero?desde=&hasta=` | Ventas, total, ticket promedio y métodos de pago por cajero — admin |
 
 > En los ejemplos siguientes se omite `-H "Authorization: Bearer $TOKEN"` por brevedad.
 
@@ -150,6 +154,23 @@ curl localhost:3000/compras/cuentas-por-pagar
 }
 ```
 
+### Ejemplo: reportes del dueño
+
+Responden a las preguntas de fin de mes: qué se vende más, qué deja poco margen y cómo rinde cada caja.
+
+```bash
+curl "localhost:3000/reportes/margen-productos?desde=2026-10-01&hasta=2026-10-31"
+```
+
+```json
+[
+  { "codigo": "AMX500", "producto": "Amoxicilina 500mg", "unidades": 21, "ingresosBs": 63, "costoBs": 50.4, "margenBs": 12.6, "margenPorcentaje": 20 },
+  { "codigo": "PAR500", "producto": "Paracetamol 500mg", "unidades": 30, "ingresosBs": 45, "costoBs": 18, "margenBs": 27, "margenPorcentaje": 60 }
+]
+```
+
+El costo sale de los lotes que realmente se vendieron (FEFO), así que el margen refleja las compras a distintos precios.
+
 ## Arquitectura
 
 ```
@@ -162,7 +183,7 @@ src/
     inventario.js   # productos, lotes y descuento FEFO
     alertas.js      # vencimientos y stock mínimo
     ventas.js       # ventas todo-o-nada con trazabilidad de lotes
-    reportes.js     # ticket térmico y cierre diario
+    reportes.js     # ticket, cierre diario y reportes del dueño
     proveedores.js  # droguerías y laboratorios, días de crédito
     compras.js      # ingreso de lotes por compra y cuentas por pagar
 tests/              # Jest + Supertest (servicios, API y permisos)
@@ -181,7 +202,7 @@ Los datos se guardan en memoria; la persistencia (SQLite) está en el roadmap.
 - [x] Ventas con ticket y cierre diario
 - [x] Proveedores, compras y cuentas por pagar
 - [x] Autenticación JWT con roles admin / cajero
-- [ ] Reportes para el dueño (más vendidos, margen por producto)
+- [x] Reportes para el dueño (más vendidos, margen por producto, ventas por cajero)
 - [ ] Persistencia en SQLite y datos de ejemplo de Santa Cruz
 
 ## Licencia
