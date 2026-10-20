@@ -1,5 +1,11 @@
 # farmacia-pos-api
 
+[![CI](https://github.com/Angellec21/farmacia-pos-api/actions/workflows/ci.yml/badge.svg)](https://github.com/Angellec21/farmacia-pos-api/actions/workflows/ci.yml)
+![Node.js](https://img.shields.io/badge/Node.js-20%20%7C%2022%20%7C%2024-339933?logo=nodedotjs&logoColor=white)
+![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white)
+![Jest](https://img.shields.io/badge/tests-Jest%20%2B%20Supertest-C21325?logo=jest&logoColor=white)
+![Licencia MIT](https://img.shields.io/badge/licencia-MIT-blue)
+
 API REST para farmacias pequeñas y medianas: productos con **lotes y fechas de vencimiento**, salida de stock **FEFO** (primero en vencer, primero en salir), alertas de vencimiento y stock mínimo, ventas y roles.
 
 Hecha con **Node.js + Express**, probada con **Jest + Supertest**.
@@ -19,7 +25,7 @@ En una farmacia el mismo producto llega en varios lotes con fechas de vencimient
 
 ```bash
 npm install
-npm test
+npm test               # 65 pruebas; `npm test -- --coverage` para ver la cobertura
 cp .env.example .env   # opcional: cambie JWT_SECRET y ADMIN_PASSWORD
 npm start              # http://localhost:3000
 ```
