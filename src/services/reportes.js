@@ -62,4 +62,107 @@ function cierreDiario(ventas, fecha) {
   };
 }
 
-module.exports = { ticketTexto, cierreDiario, ANCHO };
+const FECHA_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Filtra ventas por rango de fechas inclusivo (AAAA-MM-DD); sin límites = todo. */
+function enPeriodo(ventas, { desde, hasta } = {}) {
+  return ventas.filter((v) => (!desde || v.fecha >= desde) && (!hasta || v.fecha <= hasta));
+}
+
+function porcentaje(parte, total) {
+  return total > 0 ? redondear((parte / total) * 100) : 0;
+}
+
+/** Acumula unidades, ingresos y costo por producto en el periodo. */
+function acumularPorProducto(ventas) {
+  const mapa = new Map();
+  for (const v of ventas) {
+    for (const it of v.items) {
+      const a = mapa.get(it.productoId) || {
+        productoId: it.productoId,
+        producto: it.producto,
+        codigo: it.codigo,
+        unidades: 0,
+        ingresosBs: 0,
+        costoBs: 0,
+      };
+      a.unidades += it.cantidad;
+      a.ingresosBs = redondear(a.ingresosBs + it.subtotal);
+      a.costoBs = redondear(a.costoBs + (it.costo || 0));
+      mapa.set(it.productoId, a);
+    }
+  }
+  return [...mapa.values()];
+}
+
+/**
+ * Ranking de productos más vendidos. `orden` = 'unidades' (por defecto) o
+ * 'ingresos'. Incluye la participación de cada producto en el total del periodo.
+ */
+function masVendidos(ventas, { desde, hasta, limite = 10, orden = 'unidades' } = {}) {
+  const filas = acumularPorProducto(enPeriodo(ventas, { desde, hasta }));
+  const totalBs = redondear(filas.reduce((s, f) => s + f.ingresosBs, 0));
+  const clave = orden === 'ingresos' ? 'ingresosBs' : 'unidades';
+  return filas
+    .sort((a, b) => b[clave] - a[clave] || a.producto.localeCompare(b.producto))
+    .slice(0, limite)
+    .map(({ costoBs, ...f }, i) => ({ puesto: i + 1, ...f, participacion: porcentaje(f.ingresosBs, totalBs) }));
+}
+
+/**
+ * Margen bruto por producto (ingresos - costo real de los lotes vendidos),
+ * de menor a mayor margen %: lo primero que ve el dueño es lo que menos deja.
+ */
+function margenPorProducto(ventas, { desde, hasta } = {}) {
+  return acumularPorProducto(enPeriodo(ventas, { desde, hasta }))
+    .map((f) => {
+      const margenBs = redondear(f.ingresosBs - f.costoBs);
+      return { ...f, margenBs, margenPorcentaje: porcentaje(margenBs, f.ingresosBs) };
+    })
+    .sort((a, b) => a.margenPorcentaje - b.margenPorcentaje || a.producto.localeCompare(b.producto));
+}
+
+/** Desempeño por cajero: ventas, total, ticket promedio y métodos de pago. */
+function ventasPorCajero(ventas, { desde, hasta } = {}) {
+  const mapa = new Map();
+  for (const v of enPeriodo(ventas, { desde, hasta })) {
+    const id = v.cajero ? v.cajero.id : null;
+    const c = mapa.get(id) || {
+      cajeroId: id,
+      cajero: v.cajero ? v.cajero.nombre : 'Sin cajero',
+      ventas: 0,
+      unidades: 0,
+      totalBs: 0,
+      porMetodo: {},
+    };
+    c.ventas += 1;
+    c.unidades += v.items.reduce((s, i) => s + i.cantidad, 0);
+    c.totalBs = redondear(c.totalBs + v.total);
+    c.porMetodo[v.metodoPago] = redondear((c.porMetodo[v.metodoPago] || 0) + v.total);
+    mapa.set(id, c);
+  }
+  return [...mapa.values()]
+    .map((c) => ({ ...c, ticketPromedioBs: redondear(c.totalBs / c.ventas) }))
+    .sort((a, b) => b.totalBs - a.totalBs);
+}
+
+/** Valida y normaliza el periodo recibido por query string. */
+function validarPeriodo({ desde, hasta } = {}) {
+  for (const [nombre, valor] of [['desde', desde], ['hasta', hasta]]) {
+    if (valor !== undefined && (!FECHA_RE.test(valor) || Number.isNaN(Date.parse(valor)))) {
+      return `${nombre} debe tener formato AAAA-MM-DD`;
+    }
+  }
+  if (desde && hasta && desde > hasta) return 'desde no puede ser posterior a hasta';
+  return null;
+}
+
+module.exports = {
+  ticketTexto,
+  cierreDiario,
+  masVendidos,
+  margenPorProducto,
+  ventasPorCajero,
+  validarPeriodo,
+  ANCHO,
+};
