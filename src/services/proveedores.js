@@ -35,7 +35,17 @@ function crearProveedores() {
     return [...proveedores.values()].map((p) => ({ ...p }));
   }
 
-  return { crear, obtener, listar };
+  function exportar() {
+    return { siguienteId, proveedores: structuredClone([...proveedores.values()]) };
+  }
+
+  function importar(estado) {
+    proveedores.clear();
+    for (const p of structuredClone(estado.proveedores || [])) proveedores.set(p.id, p);
+    siguienteId = estado.siguienteId || proveedores.size + 1;
+  }
+
+  return { crear, obtener, listar, exportar, importar };
 }
 
 module.exports = { crearProveedores };

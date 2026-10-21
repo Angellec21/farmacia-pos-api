@@ -160,7 +160,24 @@ function crearCompras(inventario, proveedores) {
     };
   }
 
-  return { registrar, abonar, listar, obtener: (n) => copia(obtenerInterna(n)), cuentasPorPagar };
+  function exportar() {
+    return { siguienteNumero, compras: structuredClone(compras) };
+  }
+
+  function importar(estado) {
+    compras.splice(0, compras.length, ...structuredClone(estado.compras || []));
+    siguienteNumero = estado.siguienteNumero || compras.length + 1;
+  }
+
+  return {
+    registrar,
+    abonar,
+    listar,
+    obtener: (n) => copia(obtenerInterna(n)),
+    cuentasPorPagar,
+    exportar,
+    importar,
+  };
 }
 
 module.exports = { crearCompras };

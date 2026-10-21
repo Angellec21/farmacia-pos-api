@@ -78,6 +78,12 @@ function crearUsuarios() {
     obtener: (id) => publico(buscar(id)),
     listar: () => usuarios.map(publico),
     cantidad: () => usuarios.length,
+    // Se exporta el hash (nunca la contraseña) para poder restaurar las sesiones de acceso.
+    exportar: () => ({ siguienteId, usuarios: structuredClone(usuarios) }),
+    importar(estado) {
+      usuarios.splice(0, usuarios.length, ...structuredClone(estado.usuarios || []));
+      siguienteId = estado.siguienteId || usuarios.length + 1;
+    },
   };
 }
 

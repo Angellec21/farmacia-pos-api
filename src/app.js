@@ -14,6 +14,9 @@ const { crearCompras } = require('./services/compras');
 const { proveedoresRouter } = require('./routes/proveedores');
 const { comprasRouter } = require('./routes/compras');
 const { reportesRouter } = require('./routes/reportes');
+const { exportarEstado } = require('./persistencia');
+
+const METODOS_DE_LECTURA = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 const NEGOCIO_POR_DEFECTO = {
   nombre: process.env.FARMACIA_NOMBRE || 'FARMACIA SAN MARTIN',
@@ -31,11 +34,36 @@ function createApp({
   // Sin JWT_SECRET se usa un secreto aleatorio: los tokens no sobreviven a un reinicio.
   jwtSecret = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex'),
   jwtExpiraEn = process.env.JWT_EXPIRA_EN || '8h',
+  // Opcional: si se pasa un almacén, el estado se guarda tras cada operación exitosa que modifica datos.
+  almacen = null,
+  registrarError = (msg) => console.error(msg),
 } = {}) {
   const auth = crearAuth({ usuarios, secreto: jwtSecret, expiraEn: jwtExpiraEn });
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json());
+
+  if (almacen) {
+    const servicios = { usuarios, inventario, proveedores, compras, ventas };
+    app.use((req, res, next) => {
+      if (METODOS_DE_LECTURA.has(req.method) || req.path === '/auth/login') return next();
+      // Se guarda justo antes de responder: si el cliente recibe "ok", el dato ya está en disco.
+      const terminar = res.end;
+      res.end = function endConGuardado(...args) {
+        res.end = terminar;
+        // Las operaciones rechazadas no cambian nada (todo o nada), así que no se guardan.
+        if (res.statusCode < 400) {
+          try {
+            almacen.escribir(exportarEstado(servicios));
+          } catch (err) {
+            registrarError(`[error] no se pudo guardar el estado: ${err.message}`);
+          }
+        }
+        return terminar.apply(this, args);
+      };
+      next();
+    });
+  }
 
   app.get('/health', (req, res) => {
     res.json({ status: 'ok', servicio: 'farmacia-pos-api' });

@@ -25,12 +25,12 @@ En una farmacia el mismo producto llega en varios lotes con fechas de vencimient
 
 ```bash
 npm install
-npm test               # 77 pruebas; `npm test -- --coverage` para ver la cobertura
+npm test               # 85 pruebas; `npm test -- --coverage` para ver la cobertura
 cp .env.example .env   # opcional: cambie JWT_SECRET y ADMIN_PASSWORD
 npm start              # http://localhost:3000
 ```
 
-Al iniciar se crea el administrador (`ADMIN_USUARIO` / `ADMIN_PASSWORD`). Si no define `ADMIN_PASSWORD`, se genera una contraseña temporal y se muestra en la consola.
+Al iniciar por primera vez se crea el administrador (`ADMIN_USUARIO` / `ADMIN_PASSWORD`). Si no define `ADMIN_PASSWORD`, se genera una contraseña temporal y se muestra en la consola.
 
 ## Autenticación y roles
 
@@ -176,6 +176,8 @@ El costo sale de los lotes que realmente se vendieron (FEFO), así que el margen
 ```
 src/
   app.js            # arma la app Express (inyección de servicios para tests)
+  servicios.js      # crea todos los servicios conectados entre sí
+  persistencia.js   # guarda/carga el estado en un archivo JSON (escritura atómica)
   auth.js           # login JWT, middleware de sesión y permisos por rol
   routes/           # capa HTTP: valida query/params, aplica permisos y delega
   services/
@@ -190,7 +192,11 @@ tests/              # Jest + Supertest (servicios, API y permisos)
   helpers/sesion.js # app de prueba con admin y cajero ya logueados
 ```
 
-Los datos se guardan en memoria; la persistencia (SQLite) está en el roadmap.
+### Persistencia
+
+Todo (productos, lotes, ventas, compras, proveedores y usuarios) se guarda en un archivo JSON (`DATA_FILE`, por defecto `data/farmacia.json`). Cada operación exitosa que modifica datos se escribe en disco **antes** de responder, con escritura atómica (archivo temporal + `rename`): un corte de luz no deja el archivo a medias. Las contraseñas se guardan solo como hash scrypt. Al reiniciar el servidor se cargan los datos y se continúa la numeración de ventas y compras.
+
+Para hacer una copia de seguridad basta con copiar ese archivo.
 
 *(La tabla crece con cada avance del proyecto.)*
 
@@ -203,7 +209,9 @@ Los datos se guardan en memoria; la persistencia (SQLite) está en el roadmap.
 - [x] Proveedores, compras y cuentas por pagar
 - [x] Autenticación JWT con roles admin / cajero
 - [x] Reportes para el dueño (más vendidos, margen por producto, ventas por cajero)
-- [ ] Persistencia en SQLite y datos de ejemplo de Santa Cruz
+- [x] Persistencia en archivo con guardado automático
+- [ ] Datos de ejemplo de Santa Cruz
+- [ ] Base de datos SQLite/PostgreSQL para varias sucursales
 
 ## Licencia
 

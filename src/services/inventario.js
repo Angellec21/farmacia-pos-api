@@ -116,6 +116,18 @@ function crearInventario() {
     return p.lotes.filter((l) => l.vencimiento >= hoy).reduce((s, l) => s + l.cantidad, 0);
   }
 
+  /** Copia completa del estado, lista para guardarse en disco. */
+  function exportar() {
+    return { siguienteId, productos: structuredClone([...productos.values()]) };
+  }
+
+  /** Reemplaza el estado actual por uno exportado antes. */
+  function importar(estado) {
+    productos.clear();
+    for (const p of structuredClone(estado.productos || [])) productos.set(p.id, p);
+    siguienteId = estado.siguienteId || productos.size + 1;
+  }
+
   return {
     crearProducto,
     listar,
@@ -124,6 +136,8 @@ function crearInventario() {
     agregarLote,
     descontar,
     stockVigente,
+    exportar,
+    importar,
   };
 }
 

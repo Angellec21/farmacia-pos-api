@@ -115,7 +115,16 @@ function crearVentas(inventario) {
     return v;
   }
 
-  return { registrar, listar, obtener };
+  function exportar() {
+    return { siguienteNumero, ventas: structuredClone(ventas) };
+  }
+
+  function importar(estado) {
+    ventas.splice(0, ventas.length, ...structuredClone(estado.ventas || []));
+    siguienteNumero = estado.siguienteNumero || ventas.length + 1;
+  }
+
+  return { registrar, listar, obtener, exportar, importar };
 }
 
 module.exports = { crearVentas, METODOS_PAGO };
