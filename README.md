@@ -8,7 +8,7 @@
 
 API REST para farmacias pequeñas y medianas: productos con **lotes y fechas de vencimiento**, salida de stock **FEFO** (primero en vencer, primero en salir), alertas de vencimiento y stock mínimo, ventas y roles.
 
-Hecha con **Node.js + Express**, probada con **Jest + Supertest**.
+Hecha con **Node.js + Express**, probada con **Jest + Supertest** (92 pruebas). Versión estable **1.0.0**: ver el [CHANGELOG](CHANGELOG.md).
 
 ## Problema que resuelve
 
@@ -209,9 +209,9 @@ Todo (productos, lotes, ventas, compras, proveedores y usuarios) se guarda en un
 
 Para hacer una copia de seguridad basta con copiar ese archivo.
 
-*(La tabla crece con cada avance del proyecto.)*
-
 ## Roadmap
+
+Incluido en v1.0.0:
 
 - [x] Estructura Express + Jest
 - [x] Productos con lotes y descuento FEFO
@@ -222,8 +222,13 @@ Para hacer una copia de seguridad basta con copiar ese archivo.
 - [x] Reportes para el dueño (más vendidos, margen por producto, ventas por cajero)
 - [x] Persistencia en archivo con guardado automático
 - [x] Datos de ejemplo de Santa Cruz (`npm run seed`)
+
+Próximas versiones:
+
 - [ ] Base de datos SQLite/PostgreSQL para varias sucursales
+- [ ] Facturación electrónica (SIAT) con código QR en el ticket
+- [ ] Documentación OpenAPI/Swagger
 
 ## Licencia
 
-MIT
+[MIT](LICENSE) © Angel Emanuel Lecaro Quispe

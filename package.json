@@ -1,6 +1,6 @@
 {
   "name": "farmacia-pos-api",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "API para farmacias: productos con lotes, vencimientos, ventas y roles",
   "main": "src/server.js",
   "scripts": {
@@ -15,7 +15,7 @@
     "inventario",
     "express"
   ],
-  "author": "Angel Emanuel Lecaro",
+  "author": "Angel Emanuel Lecaro Quispe",
   "license": "MIT",
   "dependencies": {
     "express": "^4.21.2",
