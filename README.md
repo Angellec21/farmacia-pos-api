@@ -25,12 +25,21 @@ En una farmacia el mismo producto llega en varios lotes con fechas de vencimient
 
 ```bash
 npm install
-npm test               # 85 pruebas; `npm test -- --coverage` para ver la cobertura
+npm test               # 92 pruebas; `npm test -- --coverage` para ver la cobertura
 cp .env.example .env   # opcional: cambie JWT_SECRET y ADMIN_PASSWORD
 npm start              # http://localhost:3000
 ```
 
-Al iniciar por primera vez se crea el administrador (`ADMIN_USUARIO` / `ADMIN_PASSWORD`). Si no define `ADMIN_PASSWORD`, se genera una contraseña temporal y se muestra en la consola.
+### Probar con datos de ejemplo
+
+```bash
+npm run seed   # crea data/farmacia.json con una farmacia de Santa Cruz
+npm start
+```
+
+El script carga 10 productos de mostrador (paracetamol, amoxicilina, sales de rehidratación, repelente…), 3 droguerías ficticias con días de crédito, 4 compras (una ya con abono), una semana de ventas de dos cajeros y, a propósito, un lote vencido, lotes por vencer y productos bajo el stock mínimo, para que las alertas y reportes tengan algo que mostrar. Las fechas son relativas al día en que se ejecuta. Imprime los usuarios (`admin`, `luis`, `carla`) con contraseñas aleatorias. No sobrescribe datos existentes salvo con `npm run seed -- --forzar`.
+
+Sin datos de ejemplo, al iniciar por primera vez se crea el administrador (`ADMIN_USUARIO` / `ADMIN_PASSWORD`). Si no define `ADMIN_PASSWORD`, se genera una contraseña temporal y se muestra en la consola.
 
 ## Autenticación y roles
 
@@ -178,6 +187,8 @@ src/
   app.js            # arma la app Express (inyección de servicios para tests)
   servicios.js      # crea todos los servicios conectados entre sí
   persistencia.js   # guarda/carga el estado en un archivo JSON (escritura atómica)
+  datos-ejemplo.js  # farmacia de ejemplo de Santa Cruz (npm run seed)
+scripts/seed.js     # CLI que escribe los datos de ejemplo en DATA_FILE
   auth.js           # login JWT, middleware de sesión y permisos por rol
   routes/           # capa HTTP: valida query/params, aplica permisos y delega
   services/
@@ -210,7 +221,7 @@ Para hacer una copia de seguridad basta con copiar ese archivo.
 - [x] Autenticación JWT con roles admin / cajero
 - [x] Reportes para el dueño (más vendidos, margen por producto, ventas por cajero)
 - [x] Persistencia en archivo con guardado automático
-- [ ] Datos de ejemplo de Santa Cruz
+- [x] Datos de ejemplo de Santa Cruz (`npm run seed`)
 - [ ] Base de datos SQLite/PostgreSQL para varias sucursales
 
 ## Licencia
